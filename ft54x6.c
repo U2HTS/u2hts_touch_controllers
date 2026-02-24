@@ -8,8 +8,7 @@
 
 #include "u2hts_core.h"
 static bool ft54x6_setup(U2HTS_BUS_TYPES bus_type);
-static bool ft54x6_coord_fetch(const u2hts_config* cfg,
-                               u2hts_hid_report* report);
+static bool ft54x6_coord_fetch();
 
 static u2hts_touch_controller_operations ft54x6_ops = {
     .setup = &ft54x6_setup, .fetch = &ft54x6_coord_fetch};
@@ -77,17 +76,15 @@ inline static bool ft54x6_setup(U2HTS_BUS_TYPES bus_type) {
   return ret;
 }
 
-inline static bool ft54x6_coord_fetch(const u2hts_config* cfg,
-                                      u2hts_hid_report* report) {
-  U2HTS_SET_TP_COUNT_SAFE(ft54x6_read_byte(FT54X6_TP_COUNT_REG));
-  ft54x6_tp_data tp[report->tp_count];
+inline static bool ft54x6_coord_fetch() {
+  uint8_t tp_count = ft54x6_read_byte(FT54X6_TP_COUNT_REG);
+  U2HTS_SET_TP_COUNT_SAFE(tp_count);
+  ft54x6_tp_data tp[tp_count];
   ft54x6_i2c_read(FT54X6_TP_DATA_START_REG, &tp, sizeof(tp));
-  for (uint8_t i = 0; i < report->tp_count; i++) {
-    report->tp[i].contact = (tp[i].x_h >> 6 == 0x02);
-    report->tp[i].id = tp[i].y_h >> 4;
-    report->tp[i].x = (tp[i].x_h & 0xF) << 8 | tp[i].x_l;
-    report->tp[i].y = (tp[i].y_h & 0xF) << 8 | tp[i].y_l;
-    u2hts_transform_touch_data(cfg, &report->tp[i]);
-  }
+  for (uint8_t i = 0; i < tp_count; i++)
+    u2hts_set_tp(i, (tp[i].x_h >> 6 == 0x02), tp[i].y_h >> 4,
+                 (tp[i].x_h & 0xF) << 8 | tp[i].x_l,
+                 (tp[i].y_h & 0xF) << 8 | tp[i].y_l, 0, 0, 0);
+
   return true;
 }

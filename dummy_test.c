@@ -30,24 +30,12 @@ static bool dummy_setup(U2HTS_BUS_TYPES bus_type) {
   return true;
 }
 
-static inline uint8_t random_tp_count() { return rand() % 10; }
-static inline void random_tp(u2hts_tp* tp) {
-  tp->contact = true;
-  tp->x = rand() % 4096;
-  tp->y = rand() % 4096;
-  tp->height = rand() % 256;
-  tp->width = rand() % 256;
-  tp->pressure = rand() % 256;
-}
-
-static bool dummy_coord_fetch(const u2hts_config* cfg,
-                              u2hts_hid_report* report) {
-  report->tp_count = random_tp_count();
-  for (uint8_t i = 0; i < report->tp_count; i++) {
-    report->tp[i].id = i;
-    random_tp(&report->tp[i]);
-    u2hts_transform_touch_data(cfg, &report->tp[i]);
-  }
+static bool dummy_coord_fetch() {
+  uint8_t tp_count = rand() % 10;
+  U2HTS_SET_TP_COUNT_SAFE(tp_count);
+  for (uint8_t i = 0; i < tp_count; i++)
+    u2hts_set_tp(i, true, i, rand() % 4096, rand() % 4096, rand() % 256,
+                 rand() % 256, rand() % 256);
   return true;
 }
 

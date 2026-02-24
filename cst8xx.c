@@ -8,8 +8,7 @@
 
 #include "u2hts_core.h"
 static bool cst8xx_setup(U2HTS_BUS_TYPES bus_type);
-static bool cst8xx_coord_fetch(const u2hts_config* cfg,
-                               u2hts_hid_report* report);
+static bool cst8xx_coord_fetch();
 
 static u2hts_touch_controller_operations cst8xx_ops = {
     .setup = &cst8xx_setup, .fetch = &cst8xx_coord_fetch};
@@ -71,16 +70,12 @@ inline static bool cst8xx_setup(U2HTS_BUS_TYPES bus_type) {
   return true;
 }
 
-inline static bool cst8xx_coord_fetch(const u2hts_config* cfg,
-                                      u2hts_hid_report* report) {
+inline static bool cst8xx_coord_fetch() {
   if (!cst8xx_read_byte(CST8XX_FINGER_NUM_REG)) return false;
-  report->tp_count = 1;
+  U2HTS_SET_TP_COUNT_SAFE(1);
   cst8xx_tp_data tp = {0};
   cst8xx_i2c_read(CST8XX_TP_DATA_START_REG, &tp, sizeof(tp));
-  report->tp[0].contact = true;
-  report->tp[0].id = 0;
-  report->tp[0].x = (tp.x_h & 0xF) << 8 | tp.x_l;
-  report->tp[0].y = (tp.y_h & 0xF) << 8 | tp.y_l;
-  u2hts_transform_touch_data(cfg, &report->tp[0]);
+  u2hts_set_tp(0, true, 0, (tp.x_h & 0xF) << 8 | tp.x_l,
+               (tp.y_h & 0xF) << 8 | tp.y_l, 0, 0, 0);
   return true;
 }

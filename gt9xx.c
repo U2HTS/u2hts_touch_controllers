@@ -9,8 +9,7 @@
 #include "u2hts_core.h"
 
 static bool gt9xx_setup(U2HTS_BUS_TYPES bus_type);
-static bool gt9xx_coord_fetch(const u2hts_config* cfg,
-                              u2hts_hid_report* report);
+static bool gt9xx_coord_fetch();
 static void gt9xx_get_config(u2hts_touch_controller_config* cfg);
 
 static u2hts_touch_controller_operations gt9xx_ops = {
@@ -103,22 +102,16 @@ static void gt9xx_get_config(u2hts_touch_controller_config* cfg) {
 
 inline static void gt9xx_clear_irq() { gt9xx_write_byte(GT9XX_STATUS_REG, 0); }
 
-static bool gt9xx_coord_fetch(const u2hts_config* cfg,
-                              u2hts_hid_report* report) {
+static bool gt9xx_coord_fetch() {
   uint8_t tp_count = gt9xx_read_byte(GT9XX_STATUS_REG) & 0xF;
   gt9xx_clear_irq();
   U2HTS_SET_TP_COUNT_SAFE(tp_count);
-  gt9xx_tp_data tp_data[report->tp_count];
+  gt9xx_tp_data tp_data[tp_count];
   gt9xx_i2c_read(GT9XX_TP_DATA_START_REG, tp_data, sizeof(tp_data));
-  for (uint8_t i = 0; i < report->tp_count; i++) {
-    report->tp[i].id = tp_data[i].track_id & 0xF;
-    report->tp[i].contact = true;
-    report->tp[i].x = tp_data[i].x_coord;
-    report->tp[i].y = tp_data[i].y_coord;
-    report->tp[i].width = tp_data[i].point_size_w;
-    report->tp[i].height = tp_data[i].point_size_h;
-    u2hts_transform_touch_data(cfg, &report->tp[i]);
-  }
+  for (uint8_t i = 0; i < tp_count; i++)
+    u2hts_set_tp(i, true, tp_data[i].track_id & 0xF, tp_data[i].x_coord,
+                 tp_data[i].y_coord, tp_data[i].point_size_w,
+                 tp_data[i].point_size_h, 0);
   return true;
 }
 

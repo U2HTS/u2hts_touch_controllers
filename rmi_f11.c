@@ -10,8 +10,7 @@
 
 #include "rmi_common.h"
 static bool rmi_f11_setup(U2HTS_BUS_TYPES bus_type);
-static bool rmi_f11_coord_fetch(const u2hts_config* cfg,
-                                u2hts_hid_report* report);
+static bool rmi_f11_coord_fetch();
 static void rmi_f11_get_config(u2hts_touch_controller_config* cfg);
 
 static u2hts_touch_controller_operations rmi_ops = {
@@ -70,37 +69,28 @@ inline static void rmi_f11_cmd_write(uint16_t offset, uint8_t value) {
   rmi_cmd_write(rmi_f11.i2c_config.addr, &f11, offset, value);
 }
 
-static bool rmi_f11_coord_fetch(const u2hts_config* cfg,
-                                u2hts_hid_report* report) {
+static bool rmi_f11_coord_fetch() {
   // read irq reg to clear irq
   rmi_clear_irq(rmi_f11.i2c_config.addr);
-  rmi_f11_max_tps = (rmi_f11_max_tps < cfg->coord_config.max_tps)
-                        ? rmi_f11_max_tps
-                        : cfg->coord_config.max_tps;
   rmi_f11_tp_data f11_data[rmi_f11_max_tps];
   uint8_t fsd_size = (rmi_f11_max_tps + 3) / 4;
   uint32_t fsd = 0x0;  // finger status data
   rmi_i2c_read(rmi_f11.i2c_config.addr, f11.data_base, &fsd, fsd_size);
   rmi_i2c_read(rmi_f11.i2c_config.addr, f11.data_base + fsd_size, f11_data,
                sizeof(f11_data));
-
-  for (uint8_t i = 0, tp_index = 0; i < rmi_f11_max_tps; i++) {
+  uint8_t tp_count = 0;
+  for (uint8_t i = 0; i < rmi_f11_max_tps; i++) {
     if ((fsd & (3 << i * 2))) {
-      report->tp_count++;
-      report->tp[tp_index].contact = true;
-      report->tp[tp_index].id = i;
-      report->tp[tp_index].x =
-          (f11_data[i].xy_low & 0xF) | (f11_data[i].x_high << 4);
-      report->tp[tp_index].y =
-          (f11_data[i].xy_low & 0xF0) >> 4 | (f11_data[i].y_high << 4);
-      report->tp[tp_index].width = f11_data[i].wxy & 0xF;
-      report->tp[tp_index].height = (f11_data[i].wxy & 0xF0) >> 4;
-      report->tp[tp_index].pressure = f11_data[i].z;
-      u2hts_transform_touch_data(cfg, &report->tp[tp_index]);
-      tp_index++;
+      u2hts_set_tp(tp_count, true, i,
+                   (f11_data[i].xy_low & 0xF) | (f11_data[i].x_high << 4),
+                   (f11_data[i].xy_low & 0xF0) >> 4 | (f11_data[i].y_high << 4),
+                   f11_data[i].wxy & 0xF, (f11_data[i].wxy & 0xF0) >> 4,
+                   f11_data[i].z);
+      tp_count++;
     }
   }
-  return report->tp_count;
+  U2HTS_SET_TP_COUNT_SAFE(tp_count);
+  return true;
 }
 
 static void rmi_f11_get_config(u2hts_touch_controller_config* cfg) {

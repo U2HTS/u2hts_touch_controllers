@@ -9,8 +9,7 @@
 
 #include "u2hts_core.h"
 static bool mycontroller_setup(U2HTS_BUS_TYPES bus_type);
-static bool mycontroller_coord_fetch(const u2hts_config* cfg,
-                                     u2hts_hid_report* report);
+static bool mycontroller_coord_fetch();
 static void mycontroller_get_config(u2hts_touch_controller_config* cfg);
 
 static u2hts_touch_controller_operations mycontroller_ops = {
@@ -155,8 +154,7 @@ inline static bool mycontroller_setup(U2HTS_BUS_TYPES bus_type) {
   return true;
 }
 
-inline static bool mycontroller_coord_fetch(const u2hts_config* cfg,
-                                            u2hts_hid_report* report) {
+inline static bool mycontroller_coord_fetch() {
   // this function will be called immediately when touch interrupt (ATTN)
   // triggered. some controller require clear it's internal interrupt flag after
   // irq generated otherwise ATTN signal won't stop from emitting.
@@ -169,23 +167,14 @@ inline static bool mycontroller_coord_fetch(const u2hts_config* cfg,
   // 清中断标志
   mycontroller_write_byte(MYCONTROLLER_TP_COUNT_REG, 0x00);
   U2HTS_SET_TP_COUNT_SAFE(tp_count);
-  // read tp data
-  // 读取触摸数据
-  mycontroller_tp_data tp[report->tp_count];
+  // prepare tp data
+  // 准备触摸数据
+  mycontroller_tp_data tp[tp_count];
   mycontroller_read(MYCONTROLLER_TP_DATA_START_REG, &tp, sizeof(tp));
-  for (uint8_t i = 0; i < report->tp_count; i++) {
-    report->tp[i].id = tp[i].id;
-    report->tp[i].contact = true;
-    report->tp[i].x = tp[i].x;
-    report->tp[i].y = tp[i].y;
-    report->tp[i].width = tp[i].width;
-    report->tp[i].height = tp[i].height;
-    // transform tp data
-    // 转换触摸数据
-    u2hts_transform_touch_data(cfg, &report->tp[i]);
-  }
-  // u2hts_core will fill report->scan_time
-  // 不需要填写report->scan_time, u2hts_core.c会处理它
+  for (uint8_t i = 0; i < tp_count; i++)
+    u2hts_set_tp(i, true, tp[i].id, tp[i].x, tp[i].y, tp[i].width, tp[i].height,
+                 0);
+  return true;
 }
 
 inline static void mycontroller_get_config(u2hts_touch_controller_config* cfg) {
