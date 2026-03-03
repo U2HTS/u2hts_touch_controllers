@@ -5,6 +5,7 @@
 | Synaptics / 新思 | `RMI4-F11-I2C` | Y | S7300B | `rmi_f11` | I2C/SPI | |
 | Focaltech / 敦泰 | `FT54x6` | N | ft3168, ft5406 |  `ft54x6` | I2C | |
 | Hynitron / 海栎创 | `CST8xx` | N | cst816d | `cst8xx` | I2C | |
+| Chipsemi / 基合半导体 | `CHSC6540` | N | chsc6540 | `chsc6540` | I2C | |
 | dummy / 虚拟 | Report rate test / 回报率测试 | Y | N/A | `dummy` | N/A | dummy.rand_seed / 随机数种子 |
 
 **Note**: 
