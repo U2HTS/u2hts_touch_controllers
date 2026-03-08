@@ -40,9 +40,9 @@ static bool dummy_coord_fetch() {
 }
 
 static void dummy_get_config(u2hts_touch_controller_config* cfg) {
-  cfg->max_tps = 10;
-  cfg->x_max = 4095;
-  cfg->y_max = 4095;
+  cfg->max_tps = U2HTS_MAX_TPS;
+  cfg->x_max = U2HTS_LOGICAL_MAX;
+  cfg->y_max = U2HTS_LOGICAL_MAX;
 }
 
 static u2hts_touch_controller_operations dummy_ops = {
