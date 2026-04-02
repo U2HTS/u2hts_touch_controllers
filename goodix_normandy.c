@@ -22,7 +22,7 @@ static u2hts_touch_controller goodix_normandy = {
     .i2c_config =
         {
             .addr = 0x5d,
-            .speed_hz = 100 * 1000, // 100 KHz
+            .speed_hz = 400 * 1000, 
         },
     .operations = &goodix_normandy_ops};
 U2HTS_TOUCH_CONTROLLER(goodix_normandy);

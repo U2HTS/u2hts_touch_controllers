@@ -90,7 +90,7 @@ static bool rmi_f11_coord_fetch() {
     }
   }
   U2HTS_SET_TP_COUNT_SAFE(tp_count);
-  return true;
+  return tp_count;
 }
 
 static void rmi_f11_get_config(u2hts_touch_controller_config* cfg) {

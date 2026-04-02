@@ -55,14 +55,6 @@ typedef struct __packed {
   uint8_t max_tps;
 } gt9xx_config;
 
-// ref linux/drivers/input/touchscreen/goodix.c
-static const char* gt1x_products[] = {"1151", "1158", "5663", "5688",
-                                      "917S", "9286", NULL};
-
-static const char* gt9x_products[] = {"911", "9271", "9110", "9111",
-                                      "927", "928",  "912",  "9147",
-                                      "967", "615",  NULL};
-
 inline static void gt9xx_i2c_read(uint16_t reg, void* data, size_t data_size) {
   u2hts_i2c_mem_read(gt9xx.i2c_config.addr, reg, sizeof(reg), data, data_size);
 }
@@ -81,20 +73,13 @@ inline static void gt9xx_write_byte(uint16_t reg, uint8_t data) {
   gt9xx_i2c_write(reg, &data, sizeof(data));
 }
 
-static uint16_t gt9xx_get_config_start_addr(const char* product_id) {
-  for (uint8_t i = 0; gt1x_products[i]; i++)
-    if (!strcmp(product_id, gt1x_products[i]))
-      return GT9XX_GT1X_CONFIG_START_REG;
-  for (uint8_t i = 0; gt9x_products[i]; i++)
-    if (!strcmp(product_id, gt9x_products[i]))
-      return GT9XX_GT9X_CONFIG_START_REG;
-  return GT9XX_GT9X_CONFIG_START_REG;
-}
-
 static void gt9xx_get_config(u2hts_touch_controller_config* cfg) {
   gt9xx_config gt_cfg = {0};
-  gt9xx_i2c_read(gt9xx_get_config_start_addr(gt9xx_product_id), &gt_cfg,
-                 sizeof(gt_cfg));
+  // Try GT1X reg addr first, then GT9X
+  gt9xx_i2c_read(GT9XX_GT1X_CONFIG_START_REG, &gt_cfg, sizeof(gt_cfg));
+  if (gt_cfg.x_max > U2HTS_LOGICAL_MAX || gt_cfg.y_max > U2HTS_LOGICAL_MAX ||
+      gt_cfg.max_tps > U2HTS_MAX_TPS)
+    gt9xx_i2c_read(GT9XX_GT9X_CONFIG_START_REG, &gt_cfg, sizeof(gt_cfg));
   cfg->x_max = gt_cfg.x_max - 1;
   cfg->y_max = gt_cfg.y_max - 1;
   cfg->max_tps = gt_cfg.max_tps;
