@@ -14,7 +14,7 @@
 
 #include "u2hts_core.h"
 
-#define CHSC6540_I2C_ADDR chsc6540.i2c_config.addr
+#define CHSC6540_I2C_ADDR chsc6540.i2c_config.primary_addr
 
 static bool chsc6540_setup(U2HTS_BUS_TYPES bus_type);
 static bool chsc6540_coord_fetch();
@@ -27,7 +27,7 @@ static u2hts_touch_controller chsc6540 = {
     .irq_type = IRQ_TYPE_EDGE_FALLING,
     .i2c_config =
         {
-            .addr = 0x2e, .speed_hz = 100 * 1000 /* 100 KHz*/
+            .primary_addr = 0x2e, .speed_hz = 100 * 1000 /* 100 KHz*/
         },
     .operations = &chsc6540_ops};
 
@@ -68,7 +68,8 @@ static bool chsc6540_setup(U2HTS_BUS_TYPES bus_type) {
   u2hts_delay_ms(100);
   u2hts_tprst_set(true);
   u2hts_delay_ms(100);
-  return u2hts_i2c_detect_slave(chsc6540.i2c_config.addr);
+  U2HTS_DETECT_TOUCH_CONTROLLER(chsc6540);
+  return true;
 }
 
 static bool chsc6540_coord_fetch() {

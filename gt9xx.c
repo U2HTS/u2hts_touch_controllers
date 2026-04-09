@@ -17,16 +17,17 @@ static u2hts_touch_controller_operations gt9xx_ops = {
     .fetch = &gt9xx_coord_fetch,
     .get_config = &gt9xx_get_config};
 
-static u2hts_touch_controller gt9xx = {.name = "gt9xx",
-                                       .irq_type = IRQ_TYPE_EDGE_FALLING,
-                                       .report_mode = UTC_REPORT_MODE_CONTINOUS,
-                                       .i2c_config =
-                                           {
-                                               .addr = 0x5d,
-                                               .speed_hz = 400 * 1000,
-                                           },
-                                       .alt_i2c_addr = 0x14,
-                                       .operations = &gt9xx_ops};
+static u2hts_touch_controller gt9xx = {
+    .name = "gt9xx",
+    .irq_type = IRQ_TYPE_EDGE_FALLING,
+    .report_mode = UTC_REPORT_MODE_CONTINOUS,
+    .i2c_config =
+        {
+            .primary_addr = 0x5d,
+            .alt_addrs = (uint8_t[]){0x14, 0},
+            .speed_hz = 400 * 1000,
+        },
+    .operations = &gt9xx_ops};
 
 U2HTS_TOUCH_CONTROLLER(gt9xx);
 
@@ -56,11 +57,13 @@ typedef struct __packed {
 } gt9xx_config;
 
 inline static void gt9xx_i2c_read(uint16_t reg, void* data, size_t data_size) {
-  u2hts_i2c_mem_read(gt9xx.i2c_config.addr, reg, sizeof(reg), data, data_size);
+  u2hts_i2c_mem_read(gt9xx.i2c_config.primary_addr, reg, sizeof(reg), data,
+                     data_size);
 }
 
 inline static void gt9xx_i2c_write(uint16_t reg, void* data, size_t data_size) {
-  u2hts_i2c_mem_write(gt9xx.i2c_config.addr, reg, sizeof(reg), data, data_size);
+  u2hts_i2c_mem_write(gt9xx.i2c_config.primary_addr, reg, sizeof(reg), data,
+                      data_size);
 }
 
 inline static uint8_t gt9xx_read_byte(uint16_t reg) {
@@ -111,17 +114,12 @@ static bool gt9xx_setup(U2HTS_BUS_TYPES bus_type) {
   u2hts_delay_ms(5);
 
   // i2c addr should be 0x5d now.
-  if (!u2hts_i2c_detect_slave(gt9xx.i2c_config.addr)) {
-    if (u2hts_i2c_detect_slave(gt9xx.alt_i2c_addr))
-      gt9xx.i2c_config.addr = gt9xx.alt_i2c_addr;
-    else
-      return false;
-  }
+  U2HTS_DETECT_TOUCH_CONTROLLER(gt9xx);
 
   gt9xx_i2c_read(GT9XX_PRODUCT_INFO_START_REG, gt9xx_product_id,
                  sizeof(gt9xx_product_id));
-  U2HTS_LOG_INFO("gt9xx i2c addr: 0x%x, product ID: %s", gt9xx.i2c_config.addr,
-                 gt9xx_product_id);
+  U2HTS_LOG_INFO("gt9xx i2c addr: 0x%x, product ID: %s",
+                 gt9xx.i2c_config.primary_addr, gt9xx_product_id);
 
   u2hts_delay_ms(100);
   gt9xx_clear_irq();

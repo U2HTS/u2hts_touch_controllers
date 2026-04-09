@@ -21,13 +21,14 @@ static u2hts_touch_controller goodix_normandy = {
     .report_mode = UTC_REPORT_MODE_CONTINOUS,
     .i2c_config =
         {
-            .addr = 0x5d,
+            .primary_addr = 0x5d,
+            .alt_addrs = (uint8_t []){0x14, 0},
             .speed_hz = 400 * 1000, 
         },
     .operations = &goodix_normandy_ops};
 U2HTS_TOUCH_CONTROLLER(goodix_normandy);
 
-#define GOODIX_NORMANDY_I2C_ADDR goodix_normandy.i2c_config.addr
+#define GOODIX_NORMANDY_I2C_ADDR goodix_normandy.i2c_config.primary_addr
 #define GOODIX_NORMANDY_TOUCH_DATA_ADDR 0x4100
 #define GOODIX_NORMANDY_VERSION_ADDR_NORMANDY 0x4535
 // this is from linux/drivers/input/touchscreen/goodix_gtx8.h
@@ -76,15 +77,14 @@ static bool goodix_normandy_setup(U2HTS_BUS_TYPES bus_type) {
   u2hts_tprst_set(true);
   u2hts_delay_ms(200);
   u2hts_tpint_set(true);
-  bool ret = u2hts_i2c_detect_slave(GOODIX_NORMANDY_I2C_ADDR);
-  if (!ret) return ret;
+  U2HTS_DETECT_TOUCH_CONTROLLER(goodix_normandy);
   goodix_normandy_firmware_version fwver = {0};
   goodix_normandy_read_reg(GOODIX_NORMANDY_VERSION_ADDR_NORMANDY, &fwver,
                            sizeof(fwver));
   U2HTS_LOG_INFO("goodix_normandy product id = %s, fwver = %d",
                  fwver.product_id, fwver.fw_version);
   goodix_normandy_clear_irq();
-  return ret;
+  return true;
 }
 
 static bool goodix_normandy_coord_fetch() {

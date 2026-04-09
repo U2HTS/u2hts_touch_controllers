@@ -1,5 +1,5 @@
 # U2HTS touch controllers
-| Vendor / 制造商 | Series / 系列 | Auto configuration / 自动配置 | Test / 测试 | Controller name /  控制器名 | 总线 / Buses | Custom controller config / 自定义控制器配置 | 
+| Vendor / 制造商 | Series / 系列 | Read configuration / 读取配置 | Test / 测试 | Controller name /  控制器名 | 总线 / Buses | Custom controller config / 自定义控制器配置 | 
 | --- | --- | --- | --- | --- | --- | --- |
 | Goodix / 汇顶 | `GT9xx` | Y | GT5688/GT615/GT9271 | `gt9xx` | I2C | |
 | Synaptics / 新思 | `RMI4-F11-I2C` | Y | S7300B | `rmi_f11` | I2C/SPI | |
@@ -12,7 +12,7 @@
 **Note**: 
 - Currently only I2C bus supports controller detection.
 - If `Controller name` is `auto`, then every available slave address on I2C bus will be detected, match the **first probed I2C slave** with an **integrated controller driver** and initialise it. Be advised that **different controllers may share same I2C address** or **different drivers may register same I2C address**. If an incorrect controller match occurs, please specify `Controller name` explicitly.  
-- Controller parameters(resolution and max touch points) must be hardcoded into firmware if controller does NOT support auto configuration.  
+- Controller parameters(resolution and max touch points) must be hardcoded into firmware if controller does NOT support read configuration.  
 - For some controllers (especially the Goodix GT9XX series), if touchpoint flickers, adjust `fetch_delay` value appropriately (approx. `16~20`).
 
 **注意**: 

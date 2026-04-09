@@ -19,7 +19,7 @@ static u2hts_touch_controller ft54x6 = {
     .report_mode = UTC_REPORT_MODE_CONTINOUS,
     .i2c_config =
         {
-            .addr = 0x38,
+            .primary_addr = 0x38,
             .speed_hz = 100 * 1000,
         },
     .operations = &ft54x6_ops};
@@ -51,7 +51,7 @@ typedef struct {
 #define FT54X6_TP_DATA_START_REG 0x03
 
 inline static void ft54x6_i2c_read(uint8_t reg, void* data, size_t data_size) {
-  u2hts_i2c_mem_read(ft54x6.i2c_config.addr, reg, sizeof(reg), data, data_size);
+  u2hts_i2c_mem_read(ft54x6.i2c_config.primary_addr, reg, sizeof(reg), data, data_size);
 }
 
 inline static uint8_t ft54x6_read_byte(uint8_t reg) {
@@ -66,14 +66,13 @@ inline static bool ft54x6_setup(U2HTS_BUS_TYPES bus_type) {
   u2hts_delay_ms(100);
   u2hts_tprst_set(true);
   u2hts_delay_ms(200);
-  bool ret = u2hts_i2c_detect_slave(ft54x6.i2c_config.addr);
-  if (!ret) return ret;
+  U2HTS_DETECT_TOUCH_CONTROLLER(ft54x6);
   ft54x6_product_info info = {0};
   ft54x6_i2c_read(FT54X6_PRODUCT_INFO_START_REG, &info, sizeof(info));
   U2HTS_LOG_INFO(
       "fwver_h = 0x%x, fwver_l = 0x%x, vendor_id = 0x%x, fw_id = 0x%x",
       info.fwver_h, info.fwver_l, info.vendor_id, info.fw_id);
-  return ret;
+  return true;
 }
 
 inline static bool ft54x6_coord_fetch() {

@@ -15,8 +15,8 @@ static void mycontroller_get_config(u2hts_touch_controller_config* cfg);
 static u2hts_touch_controller_operations mycontroller_ops = {
     .setup = &mycontroller_setup,
     .fetch = &mycontroller_coord_fetch,
-    // if your controller does not supports auto config, leave this callback
-    // empty 如果你的控制器不支持自动获取配置，请将下面这条回调留空
+    // if your controller does not supports read config, leave this callback
+    // empty 如果你的控制器不支持读取配置，请将下面这条回调留空
     .get_config = &mycontroller_get_config};
 
 static u2hts_touch_controller mycontroller = {
@@ -26,10 +26,11 @@ static u2hts_touch_controller mycontroller = {
     // I2C
     .i2c_config =
         {
-            .addr = 0xFF,            // I2C slave addr I2C从机地址
+            .primary_addr = 0xFF,    // I2C slave addr I2C从机地址
             .speed_hz = 400 * 1000,  // I2C speed in Hz I2C速度，单位为Hz
+            .alt_addrs =
+                (uint8_t[]){0xFE, 0}  // Alternative I2C addrs 替代I2C地址列表
         },
-    .alt_i2c_addr = 0xFE,  // Alternative I2C addr 替代I2C地址
     // SPI
     .spi_config =
         {
@@ -82,8 +83,8 @@ inline static void mycontroller_read(uint16_t reg, void* data,
                                      size_t data_size) {
   switch (mycontroller_bus_type) {
     case UB_I2C:
-      u2hts_i2c_mem_read(mycontroller.i2c_config.addr, reg, sizeof(reg), data,
-                         data_size);
+      u2hts_i2c_mem_read(mycontroller.i2c_config.primary_addr, reg, sizeof(reg),
+                         data, data_size);
       break;
     case UB_SPI:
       uint8_t buf[1 + data_size + sizeof(reg)];
@@ -100,8 +101,8 @@ inline static void mycontroller_write(uint16_t reg, void* data,
                                       size_t data_size) {
   switch (mycontroller_bus_type) {
     case UB_I2C:
-      u2hts_i2c_mem_write(mycontroller.i2c_config.addr, reg, sizeof(reg), data,
-                          data_size);
+      u2hts_i2c_mem_write(mycontroller.i2c_config.primary_addr, reg,
+                          sizeof(reg), data, data_size);
       break;
     case UB_SPI:
       uint8_t buf[1 + data_size + sizeof(reg)];
@@ -144,8 +145,7 @@ inline static bool mycontroller_setup(U2HTS_BUS_TYPES bus_type) {
 
   if (bus_type == UB_I2C) {  // detect controller
     // 检测控制器
-    bool ret = u2hts_i2c_detect_slave(mycontroller.i2c_config.addr);
-    if (!ret) return ret;
+    U2HTS_DETECT_TOUCH_CONTROLLER(mycontroller);
   }
 
   // if controller needs more steps to fully initialise, do it here.
