@@ -31,6 +31,7 @@ static u2hts_touch_controller gt9xx = {
 
 U2HTS_TOUCH_CONTROLLER(gt9xx);
 
+#define GT9XX_I2C_ADDR gt9xx.i2c_config.primary_addr
 #define GT9XX_GT1X_CONFIG_START_REG 0x8050
 #define GT9XX_GT9X_CONFIG_START_REG 0x8047
 #define GT9XX_PRODUCT_INFO_START_REG 0x8140
@@ -57,13 +58,11 @@ typedef struct __packed {
 } gt9xx_config;
 
 inline static void gt9xx_i2c_read(uint16_t reg, void* data, size_t data_size) {
-  u2hts_i2c_mem_read(gt9xx.i2c_config.primary_addr, reg, sizeof(reg), data,
-                     data_size);
+  u2hts_i2c_mem_read(GT9XX_I2C_ADDR, reg, sizeof(reg), data, data_size);
 }
 
 inline static void gt9xx_i2c_write(uint16_t reg, void* data, size_t data_size) {
-  u2hts_i2c_mem_write(gt9xx.i2c_config.primary_addr, reg, sizeof(reg), data,
-                      data_size);
+  u2hts_i2c_mem_write(GT9XX_I2C_ADDR, reg, sizeof(reg), data, data_size);
 }
 
 inline static uint8_t gt9xx_read_byte(uint16_t reg) {
@@ -118,8 +117,8 @@ static bool gt9xx_setup(U2HTS_BUS_TYPES bus_type) {
 
   gt9xx_i2c_read(GT9XX_PRODUCT_INFO_START_REG, gt9xx_product_id,
                  sizeof(gt9xx_product_id));
-  U2HTS_LOG_INFO("gt9xx i2c addr: 0x%x, product ID: %s",
-                 gt9xx.i2c_config.primary_addr, gt9xx_product_id);
+  U2HTS_LOG_INFO("gt9xx i2c addr: 0x%x, product ID: %s", GT9XX_I2C_ADDR,
+                 gt9xx_product_id);
 
   u2hts_delay_ms(100);
   gt9xx_clear_irq();

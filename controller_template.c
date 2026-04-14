@@ -46,6 +46,7 @@ static U2HTS_BUS_TYPES mycontroller_bus_type = UB_I2C;
 // 注册控制器
 U2HTS_TOUCH_CONTROLLER(mycontroller);
 
+#define MYCONTROLLER_I2C_ADDR mycontroller.i2c_config.primary_addr
 // example register address of read touch point count
 // 示例 读取触摸点数量的寄存器
 #define MYCONTROLLER_TP_COUNT_REG 0x0001
@@ -83,7 +84,7 @@ inline static void mycontroller_read(uint16_t reg, void* data,
                                      size_t data_size) {
   switch (mycontroller_bus_type) {
     case UB_I2C:
-      u2hts_i2c_mem_read(mycontroller.i2c_config.primary_addr, reg, sizeof(reg),
+      u2hts_i2c_mem_read(MYCONTROLLER_I2C_ADDR, reg, sizeof(reg),
                          data, data_size);
       break;
     case UB_SPI:

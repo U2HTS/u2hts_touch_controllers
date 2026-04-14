@@ -26,6 +26,8 @@ static u2hts_touch_controller ft54x6 = {
 
 U2HTS_TOUCH_CONTROLLER(ft54x6);
 
+#define FT54X6_I2C_ADDR ft54x6.i2c_config.primary_addr
+
 typedef struct {
   uint8_t x_h;
   uint8_t x_l;
@@ -51,7 +53,7 @@ typedef struct {
 #define FT54X6_TP_DATA_START_REG 0x03
 
 inline static void ft54x6_i2c_read(uint8_t reg, void* data, size_t data_size) {
-  u2hts_i2c_mem_read(ft54x6.i2c_config.primary_addr, reg, sizeof(reg), data, data_size);
+  u2hts_i2c_mem_read(FT54X6_I2C_ADDR, reg, sizeof(reg), data, data_size);
 }
 
 inline static uint8_t ft54x6_read_byte(uint8_t reg) {
