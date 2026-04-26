@@ -84,8 +84,8 @@ inline static void mycontroller_read(uint16_t reg, void* data,
                                      size_t data_size) {
   switch (mycontroller_bus_type) {
     case UB_I2C:
-      u2hts_i2c_mem_read(MYCONTROLLER_I2C_ADDR, reg, sizeof(reg),
-                         data, data_size);
+      u2hts_i2c_mem_read(MYCONTROLLER_I2C_ADDR, reg, sizeof(reg), data,
+                         data_size);
       break;
     case UB_SPI:
       uint8_t buf[1 + data_size + sizeof(reg)];
@@ -130,8 +130,8 @@ inline static bool mycontroller_setup(U2HTS_BUS_TYPES bus_type) {
   // 如果你需要传入额外的自定义参数，下面是获取它的方法
   // assume mycontroller.custom_config1=100
   // 假设设置了参数为mycontroller.custom_config1=100
-  int32_t custom_config_value =
-      u2hts_get_custom_config_i32("mycontroller.custom_config1");
+  uint32_t custom_config_value = u2hts_get_custom_config_u32(
+      "mycontroller.custom_config1", /* default 默认值 */ 0);
 
   // do hardware reset
   // 进行硬件复位

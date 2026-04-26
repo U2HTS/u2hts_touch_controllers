@@ -90,7 +90,7 @@ inline void rmi_f01_setup(uint8_t slave_addr) {
   if (!U2HTS_CHECK_BIT(info.vendor_id, 0))
     U2HTS_LOG_WARN("Not a Synaptics device, ID = 0x%x", info.vendor_id);
   if (U2HTS_CHECK_BIT(info.device_prop, 1))
-    U2HTS_LOG_WARN("This device is not compliant with RMI.");
+    U2HTS_LOG_WARN("This device does not compliant with RMI.");
   rmi_print_product_info(&info);
 }
 

@@ -23,10 +23,7 @@
 #include "u2hts_core.h"
 static bool dummy_setup(U2HTS_BUS_TYPES bus_type) {
   U2HTS_UNUSED(bus_type);
-  int32_t rand_seed = 0;
-  u2hts_get_custom_config_i32("dummy.rand_seed");
-  if (rand_seed < 0) rand_seed = u2hts_get_timestamp();
-  srand(rand_seed);
+  srand(u2hts_get_custom_config_u32("dummy.rand_seed", u2hts_get_timestamp()));
   return true;
 }
 

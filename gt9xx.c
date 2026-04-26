@@ -39,7 +39,7 @@ U2HTS_TOUCH_CONTROLLER(gt9xx);
 #define GT9XX_TP_DATA_START_REG 0x814F
 
 static char gt9xx_product_id[5] = {0};
-
+static uint32_t gt9xx_fetch_retry_timeout_us = 0;
 typedef struct __packed {
   uint8_t track_id;
   uint16_t x_coord;
@@ -90,7 +90,19 @@ static void gt9xx_get_config(u2hts_touch_controller_config* cfg) {
 inline static void gt9xx_clear_irq() { gt9xx_write_byte(GT9XX_STATUS_REG, 0); }
 
 static bool gt9xx_coord_fetch() {
-  uint8_t tp_count = gt9xx_read_byte(GT9XX_STATUS_REG) & 0xF;
+  uint16_t retry = 0;
+  uint8_t buffer_status = 0;
+
+  do {
+    buffer_status = gt9xx_read_byte(GT9XX_STATUS_REG);
+    if (U2HTS_CHECK_BIT(buffer_status, 7)) break;
+    u2hts_delay_us(1);
+    retry++;
+  } while (retry < gt9xx_fetch_retry_timeout_us);
+
+  if (!U2HTS_CHECK_BIT(buffer_status, 7)) return false;
+
+  uint8_t tp_count = buffer_status & 0xF;
   gt9xx_clear_irq();
   U2HTS_SET_TP_COUNT_SAFE(tp_count);
   gt9xx_tp_data tp_data[tp_count];
@@ -103,6 +115,8 @@ static bool gt9xx_coord_fetch() {
 }
 
 static bool gt9xx_setup(U2HTS_BUS_TYPES bus_type) {
+  gt9xx_fetch_retry_timeout_us =
+      u2hts_get_custom_config_u32("gt9xx.fetch_retry_timeout_us", 5000);
   // GT9xx only supports I2C bus.
   U2HTS_UNUSED(bus_type);
   u2hts_tprst_set(false);
