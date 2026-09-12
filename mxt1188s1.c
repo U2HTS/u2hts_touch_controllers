@@ -1,8 +1,8 @@
 /*
+  Copyright (C) U2HTS Developers. All rights reserved.
   U2HTS stands for "USB to HID TouchScreen".
   mxt1188s1.c: touch driver for Atmel maxTouch mxt1188s1 touch controllers.
   This file is licensed under GPL V3.
-  All rights reserved.
 */
 
 #include "u2hts_core.h"
