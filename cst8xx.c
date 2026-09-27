@@ -55,7 +55,7 @@ inline static uint8_t cst8xx_read_byte(uint8_t reg) {
   return var;
 }
 
-inline static bool cst8xx_setup(U2HTS_BUS_TYPES bus_type) {
+static bool cst8xx_setup(U2HTS_BUS_TYPES bus_type) {
   U2HTS_UNUSED(bus_type);
   u2hts_tprst_set(false);
   u2hts_delay_ms(100);
@@ -70,7 +70,7 @@ inline static bool cst8xx_setup(U2HTS_BUS_TYPES bus_type) {
   return true;
 }
 
-inline static bool cst8xx_coord_fetch() {
+static bool cst8xx_coord_fetch() {
   if (!cst8xx_read_byte(CST8XX_FINGER_NUM_REG)) return false;
   U2HTS_SET_TP_COUNT_SAFE(1);
   cst8xx_tp_data tp = {0};

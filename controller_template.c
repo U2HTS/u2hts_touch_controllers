@@ -127,7 +127,7 @@ inline static void mycontroller_write_byte(uint16_t reg, uint8_t data) {
   mycontroller_write(reg, &data, sizeof(data));
 }
 
-inline static bool mycontroller_setup(U2HTS_BUS_TYPES bus_type) {
+static bool mycontroller_setup(U2HTS_BUS_TYPES bus_type) {
   /*
     sometimes controller have extra configurable options (e.g. scan rate)
     declare as custom config here so user can override them
@@ -159,7 +159,7 @@ inline static bool mycontroller_setup(U2HTS_BUS_TYPES bus_type) {
   return true;
 }
 
-inline static bool mycontroller_coord_fetch() {
+static bool mycontroller_coord_fetch() {
   /*
     this callback will be invoked immediately after touch interrupt (ATTN)
     triggered. some controller require clear it's internal interrupt flag after
@@ -183,7 +183,7 @@ inline static bool mycontroller_coord_fetch() {
   return true;
 }
 
-inline static void mycontroller_get_config(u2hts_touch_controller_config* cfg) {
+static void mycontroller_get_config(u2hts_touch_controller_config* cfg) {
   mycontroller_config mycfg = {0};
   mycontroller_read(MYCONTROLLER_CONFIG_START_REG, &mycfg, sizeof(mycfg));
   cfg->x_max = mycfg.x_max;

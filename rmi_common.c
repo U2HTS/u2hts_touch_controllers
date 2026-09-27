@@ -75,7 +75,7 @@ inline int8_t rmi_fetch_pdt(uint8_t slave_addr, uint8_t func_id, rmi_pdt *p) {
   return -1;
 }
 
-inline void rmi_f01_setup(uint8_t slave_addr) {
+void rmi_f01_setup(uint8_t slave_addr) {
   // software reset
   rmi_f01_cmd_write(slave_addr, 0, 0x01);
   u2hts_delay_ms(100);

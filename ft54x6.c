@@ -61,7 +61,7 @@ inline static uint8_t ft54x6_read_byte(uint8_t reg) {
   return var;
 }
 
-inline static bool ft54x6_setup(U2HTS_BUS_TYPES bus_type) {
+static bool ft54x6_setup(U2HTS_BUS_TYPES bus_type) {
   U2HTS_UNUSED(bus_type);
   u2hts_tprst_set(false);
   u2hts_delay_ms(100);
@@ -76,7 +76,7 @@ inline static bool ft54x6_setup(U2HTS_BUS_TYPES bus_type) {
   return true;
 }
 
-inline static bool ft54x6_coord_fetch() {
+static bool ft54x6_coord_fetch() {
   uint8_t tp_count = ft54x6_read_byte(FT54X6_TP_COUNT_REG);
   U2HTS_SET_TP_COUNT_SAFE(tp_count);
   ft54x6_tp_data tp[tp_count];
