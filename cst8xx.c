@@ -6,15 +6,15 @@
 */
 
 #include "u2hts_core.h"
-static bool cst8xx_setup(U2HTS_BUS_TYPES bus_type);
+static bool cst8xx_setup(u2hts_bus_config buscfg);
 static bool cst8xx_coord_fetch();
 
-static u2hts_touch_controller_operations cst8xx_ops = {
+const static u2hts_touch_controller_operations cst8xx_ops = {
     .setup = &cst8xx_setup, .fetch = &cst8xx_coord_fetch};
 
-static u2hts_touch_controller cst8xx = {
+const static u2hts_touch_controller cst8xx = {
     .name = "cst8xx",
-    .irq_type = IRQ_TYPE_EDGE_FALLING,
+    .int_flag = INT_FLAG_EDGE_FALLING,
     .report_mode = UTC_REPORT_MODE_CONTINOUS,
     .i2c_config =
         {
@@ -25,7 +25,9 @@ static u2hts_touch_controller cst8xx = {
 
 U2HTS_TOUCH_CONTROLLER(cst8xx);
 
-#define CST8XX_I2C_ADDR cst8xx.i2c_config.primary_addr
+static uint8_t cst8xx_i2c_addr = 0x0;
+
+#define CST8XX_I2C_ADDR cst8xx_i2c_addr
 #define CST8XX_FINGER_NUM_REG 0x02
 #define CST8XX_TP_DATA_START_REG 0x03
 #define CST8XX_PRODUCT_INFO_START_REG 0xA7
@@ -55,13 +57,13 @@ inline static uint8_t cst8xx_read_byte(uint8_t reg) {
   return var;
 }
 
-static bool cst8xx_setup(U2HTS_BUS_TYPES bus_type) {
-  U2HTS_UNUSED(bus_type);
+static bool cst8xx_setup(u2hts_bus_config buscfg) {
+  cst8xx_i2c_addr = buscfg.i2c_addr;
   u2hts_tprst_set(false);
   u2hts_delay_ms(100);
   u2hts_tprst_set(true);
   u2hts_delay_ms(50);
-  U2HTS_DETECT_TOUCH_CONTROLLER(cst8xx);
+  U2HTS_I2C_DETECT_TOUCH_CONTROLLER(cst8xx, cst8xx_i2c_addr);
   cst8xx_product_info info = {0};
   cst8xx_i2c_read(CST8XX_PRODUCT_INFO_START_REG, &info, sizeof(info));
   U2HTS_LOG_INFO(

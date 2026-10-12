@@ -7,11 +7,11 @@
 */
 
 #include "u2hts_core.h"
-static bool mycontroller_setup(U2HTS_BUS_TYPES bus_type);
+static bool mycontroller_setup(u2hts_bus_config buscfg);
 static bool mycontroller_coord_fetch();
-static void mycontroller_get_config(u2hts_touch_controller_config* cfg);
+static void mycontroller_get_config(u2hts_touch_controller_coord_config* cfg);
 
-static u2hts_touch_controller_operations mycontroller_ops = {
+const static u2hts_touch_controller_operations mycontroller_ops = {
     .setup = &mycontroller_setup,
     .fetch = &mycontroller_coord_fetch,
     /*
@@ -20,9 +20,9 @@ static u2hts_touch_controller_operations mycontroller_ops = {
     */
     .get_config = &mycontroller_get_config};
 
-static u2hts_touch_controller mycontroller = {
+const static u2hts_touch_controller mycontroller = {
     .name = "mycontroller",                    // controller name 控制器名称
-    .irq_type = IRQ_TYPE_EDGE_FALLING,         // irq type 中断类型
+    .int_flag = INT_FLAG_EDGE_FALLING,         // irq type 中断类型
     .report_mode = UTC_REPORT_MODE_CONTINOUS,  // report mode 回报模式
     // I2C
     .i2c_config =
@@ -48,7 +48,9 @@ static U2HTS_BUS_TYPES mycontroller_bus_type = UB_I2C;
 // 注册控制器
 U2HTS_TOUCH_CONTROLLER(mycontroller);
 
-#define MYCONTROLLER_I2C_ADDR mycontroller.i2c_config.primary_addr
+static uint8_t mycontroller_i2c_addr = 0x0;
+
+#define MYCONTROLLER_I2C_ADDR mycontroller_i2c_addr
 // Touch point count register
 // 读取触摸点数量的寄存器
 #define MYCONTROLLER_TP_COUNT_REG 0x0001
@@ -127,7 +129,10 @@ inline static void mycontroller_write_byte(uint16_t reg, uint8_t data) {
   mycontroller_write(reg, &data, sizeof(data));
 }
 
-static bool mycontroller_setup(U2HTS_BUS_TYPES bus_type) {
+static bool mycontroller_setup(u2hts_bus_config buscfg) {
+  // user may override i2c address - save it here
+  // 用户可能会覆盖 I2C 地址，于此保存
+  mycontroller_i2c_addr = buscfg.i2c_addr;
   /*
     sometimes controller have extra configurable options (e.g. scan rate)
     declare as custom config here so user can override them
@@ -146,11 +151,11 @@ static bool mycontroller_setup(U2HTS_BUS_TYPES bus_type) {
 
   // save bus_type for further use
   // 保存bus_type的值以供后用
-  mycontroller_bus_type = bus_type;
+  mycontroller_bus_type = buscfg.bus_type;
 
-  if (bus_type == UB_I2C) {  // detect controller
+  if (buscfg.bus_type == UB_I2C) {  // detect controller
     // 检测控制器
-    U2HTS_DETECT_TOUCH_CONTROLLER(mycontroller);
+    U2HTS_I2C_DETECT_TOUCH_CONTROLLER(mycontroller, mycontroller_i2c_addr);
   }
 
   // if controller needs more steps to fully initialise, do it here.
@@ -183,7 +188,7 @@ static bool mycontroller_coord_fetch() {
   return true;
 }
 
-static void mycontroller_get_config(u2hts_touch_controller_config* cfg) {
+static void mycontroller_get_config(u2hts_touch_controller_coord_config* cfg) {
   mycontroller_config mycfg = {0};
   mycontroller_read(MYCONTROLLER_CONFIG_START_REG, &mycfg, sizeof(mycfg));
   cfg->x_max = mycfg.x_max;

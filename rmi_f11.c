@@ -8,18 +8,18 @@
 */
 
 #include "rmi_common.h"
-static bool rmi_f11_setup(U2HTS_BUS_TYPES bus_type);
+static bool rmi_f11_setup(u2hts_bus_config buscfg);
 static bool rmi_f11_coord_fetch();
-static void rmi_f11_get_config(u2hts_touch_controller_config* cfg);
+static void rmi_f11_get_config(u2hts_touch_controller_coord_config* cfg);
 
-static u2hts_touch_controller_operations rmi_ops = {
+const static u2hts_touch_controller_operations rmi_ops = {
     .setup = &rmi_f11_setup,
     .fetch = &rmi_f11_coord_fetch,
     .get_config = &rmi_f11_get_config};
 
-static u2hts_touch_controller rmi_f11 = {
+const static u2hts_touch_controller rmi_f11 = {
     .name = "rmi_f11",
-    .irq_type = IRQ_TYPE_LEVEL_LOW,
+    .int_flag = INT_FLAG_LEVEL_LOW,
     .report_mode = UTC_REPORT_MODE_CONTINOUS,
     .i2c_config =
         {
@@ -31,7 +31,9 @@ static u2hts_touch_controller rmi_f11 = {
 
 U2HTS_TOUCH_CONTROLLER(rmi_f11);
 
-#define RMI_F11_I2C_ADDR rmi_f11.i2c_config.primary_addr
+static uint8_t rmi_f11_i2c_addr = 0x0;
+
+#define RMI_F11_I2C_ADDR rmi_f11_i2c_addr
 
 typedef struct {
   uint8_t x_high;
@@ -94,7 +96,7 @@ static bool rmi_f11_coord_fetch() {
   return tp_count;
 }
 
-static void rmi_f11_get_config(u2hts_touch_controller_config* cfg) {
+static void rmi_f11_get_config(u2hts_touch_controller_coord_config* cfg) {
   uint8_t tps = rmi_f11_query_read(1) & 0x7;
   cfg->max_tps = (tps <= 4) ? tps + 1 : 10;
   rmi_f11_max_tps = cfg->max_tps;
@@ -104,7 +106,8 @@ static void rmi_f11_get_config(u2hts_touch_controller_config* cfg) {
                sizeof(cfg->y_max));
 }
 
-static bool rmi_f11_setup(U2HTS_BUS_TYPES bus_type) {
+static bool rmi_f11_setup(u2hts_bus_config buscfg) {
+  rmi_f11_i2c_addr = buscfg.i2c_addr;
   u2hts_tprst_set(true);
   u2hts_delay_ms(50);
   u2hts_tprst_set(false);
@@ -112,7 +115,7 @@ static bool rmi_f11_setup(U2HTS_BUS_TYPES bus_type) {
   u2hts_tprst_set(true);
   u2hts_delay_ms(200);
 
-  U2HTS_DETECT_TOUCH_CONTROLLER(rmi_f11);
+  U2HTS_I2C_DETECT_TOUCH_CONTROLLER(rmi_f11, rmi_f11_i2c_addr);
 
   int8_t f11_index = rmi_fetch_pdt(RMI_F11_I2C_ADDR, RMI_FUNC_F11, &f11);
   if (f11_index < 0) {

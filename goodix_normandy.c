@@ -8,15 +8,15 @@
 */
 
 #include "u2hts_core.h"
-static bool goodix_normandy_setup(U2HTS_BUS_TYPES bus_type);
+static bool goodix_normandy_setup(u2hts_bus_config buscfg);
 static bool goodix_normandy_coord_fetch();
 
-static u2hts_touch_controller_operations goodix_normandy_ops = {
+const static u2hts_touch_controller_operations goodix_normandy_ops = {
     .setup = &goodix_normandy_setup, .fetch = &goodix_normandy_coord_fetch};
 
-static u2hts_touch_controller goodix_normandy = {
+const static u2hts_touch_controller goodix_normandy = {
     .name = "goodix_normandy",
-    .irq_type = IRQ_TYPE_EDGE_FALLING,
+    .int_flag = INT_FLAG_EDGE_FALLING,
     .report_mode = UTC_REPORT_MODE_CONTINOUS,
     .i2c_config =
         {
@@ -27,7 +27,9 @@ static u2hts_touch_controller goodix_normandy = {
     .operations = &goodix_normandy_ops};
 U2HTS_TOUCH_CONTROLLER(goodix_normandy);
 
-#define GOODIX_NORMANDY_I2C_ADDR goodix_normandy.i2c_config.primary_addr
+static uint8_t goodix_normandy_i2c_addr = 0x0;
+
+#define GOODIX_NORMANDY_I2C_ADDR goodix_normandy_i2c_addr
 #define GOODIX_NORMANDY_TOUCH_DATA_ADDR 0x4100
 #define GOODIX_NORMANDY_VERSION_ADDR_NORMANDY 0x4535
 // this is from linux/drivers/input/touchscreen/goodix_gtx8.h
@@ -68,15 +70,15 @@ inline static void goodix_normandy_clear_irq() {
   goodix_normandy_write_reg(GOODIX_NORMANDY_TOUCH_DATA_ADDR, 0);
 }
 
-static bool goodix_normandy_setup(U2HTS_BUS_TYPES bus_type) {
-  U2HTS_UNUSED(bus_type);
+static bool goodix_normandy_setup(u2hts_bus_config buscfg) {
+  goodix_normandy_i2c_addr = buscfg.i2c_addr;
   u2hts_tpint_set(false);
   u2hts_tprst_set(false);
   u2hts_delay_ms(100);
   u2hts_tprst_set(true);
   u2hts_delay_ms(200);
   u2hts_tpint_set(true);
-  U2HTS_DETECT_TOUCH_CONTROLLER(goodix_normandy);
+  U2HTS_I2C_DETECT_TOUCH_CONTROLLER(goodix_normandy, goodix_normandy_i2c_addr);
   goodix_normandy_firmware_version fwver = {0};
   goodix_normandy_read_reg(GOODIX_NORMANDY_VERSION_ADDR_NORMANDY, &fwver,
                            sizeof(fwver));

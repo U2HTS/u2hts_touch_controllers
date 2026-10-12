@@ -14,17 +14,17 @@
 
 #include "u2hts_core.h"
 
-#define CHSC6540_I2C_ADDR chsc6540.i2c_config.primary_addr
+#define CHSC6540_I2C_ADDR chsc6540_i2c_addr
 
-static bool chsc6540_setup(U2HTS_BUS_TYPES bus_type);
+static bool chsc6540_setup(u2hts_bus_config buscfg);
 static bool chsc6540_coord_fetch();
 
-static u2hts_touch_controller_operations chsc6540_ops = {
+const static u2hts_touch_controller_operations chsc6540_ops = {
     .setup = &chsc6540_setup, .fetch = &chsc6540_coord_fetch};
 
-static u2hts_touch_controller chsc6540 = {
+const static u2hts_touch_controller chsc6540 = {
     .name = "chsc6540",
-    .irq_type = IRQ_TYPE_EDGE_FALLING,
+    .int_flag = INT_FLAG_EDGE_FALLING,
     .i2c_config =
         {
             .primary_addr = 0x2e, .speed_hz = 100 * 1000 /* 100 KHz*/
@@ -32,6 +32,8 @@ static u2hts_touch_controller chsc6540 = {
     .operations = &chsc6540_ops};
 
 U2HTS_TOUCH_CONTROLLER(chsc6540);
+
+static uint8_t chsc6540_i2c_addr = 0x0;
 
 typedef struct __packed {
   uint8_t dummy_0;
@@ -62,13 +64,13 @@ inline static void chsc6540_write(void* buf, size_t len) {
   u2hts_i2c_write(CHSC6540_I2C_ADDR, buf, len, true);
 }
 
-static bool chsc6540_setup(U2HTS_BUS_TYPES bus_type) {
-  U2HTS_UNUSED(bus_type);
+static bool chsc6540_setup(u2hts_bus_config buscfg) {
+  chsc6540_i2c_addr = buscfg.i2c_addr;
   u2hts_tprst_set(false);
   u2hts_delay_ms(100);
   u2hts_tprst_set(true);
   u2hts_delay_ms(100);
-  U2HTS_DETECT_TOUCH_CONTROLLER(chsc6540);
+  U2HTS_I2C_DETECT_TOUCH_CONTROLLER(chsc6540, chsc6540_i2c_addr);
   return true;
 }
 

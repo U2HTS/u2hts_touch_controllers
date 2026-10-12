@@ -34,9 +34,9 @@ __weak_symbol int rand(void)
   return (int)((u2hts_rand_state >> 16) & 0x7FFF);
 }
 
-static bool dummy_setup(U2HTS_BUS_TYPES bus_type)
+static bool dummy_setup(u2hts_bus_config buscfg)
 {
-  U2HTS_UNUSED(bus_type);
+  U2HTS_UNUSED(buscfg);
   srand(u2hts_get_custom_config_u32("dummy.rand_seed", u2hts_get_timestamp()));
   return true;
 }
@@ -50,18 +50,18 @@ static bool dummy_coord_fetch()
   return true;
 }
 
-static void dummy_get_config(u2hts_touch_controller_config *cfg)
+static void dummy_get_config(u2hts_touch_controller_coord_config *cfg)
 {
   cfg->max_tps = U2HTS_MAX_TPS;
   cfg->x_max = U2HTS_LOGICAL_MAX;
   cfg->y_max = U2HTS_LOGICAL_MAX;
 }
 
-static u2hts_touch_controller_operations dummy_ops = {
+const static u2hts_touch_controller_operations dummy_ops = {
     .setup = &dummy_setup, .fetch = &dummy_coord_fetch, .get_config = &dummy_get_config};
 
-static u2hts_touch_controller dummy = {.name = "dummy",
-                                       .irq_type = 0xFF,
+const static u2hts_touch_controller dummy = {.name = "dummy",
+                                       .int_flag = 0xFF,
                                        .report_mode = UTC_REPORT_MODE_CONTINOUS,
                                        // bypass u2hts_init bus type detection
                                        .i2c_config = {.primary_addr = 0xFF, .speed_hz = 100 * 1000},

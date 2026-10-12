@@ -19,24 +19,26 @@
 
 #include "u2hts_core.h"
 
-static bool jd9365_setup(U2HTS_BUS_TYPES bus_type);
+static bool jd9365_setup(u2hts_bus_config buscfg);
 static bool jd9365_coord_fetch();
-static void jd9365_get_config(u2hts_touch_controller_config* cfg);
-static u2hts_touch_controller_operations jd9365_ops = {
+static void jd9365_get_config(u2hts_touch_controller_coord_config* cfg);
+const static u2hts_touch_controller_operations jd9365_ops = {
     .setup = &jd9365_setup,
     .fetch = &jd9365_coord_fetch,
     .get_config = &jd9365_get_config};
 
-static u2hts_touch_controller jd9365 = {
+const static u2hts_touch_controller jd9365 = {
     .name = "jd9365",
-    .irq_type = IRQ_TYPE_EDGE_FALLING,
+    .int_flag = INT_FLAG_EDGE_FALLING,
     .report_mode = UTC_REPORT_MODE_CONTINOUS,
     .i2c_config = {.primary_addr = 0x68, .speed_hz = 400 * 1000 /*400 KHz*/},
     .operations = &jd9365_ops};
 
 U2HTS_TOUCH_CONTROLLER(jd9365);
 
-#define JD9365_I2C_ADDR jd9365.i2c_config.primary_addr
+static uint8_t jd9365_i2c_addr = 0x0;
+
+#define JD9365_I2C_ADDR jd9365_i2c_addr
 #define JD9365_CHIP_ID_REG 0x40008076
 #define JD9365_ERAM_BASE 0x20011000
 #define JD9365_COORD_ADDR_REG JD9365_ERAM_BASE + 0xD8
@@ -91,12 +93,13 @@ inline static uint16_t jd9365_read_id() {
   return id;
 }
 
-static bool jd9365_setup(U2HTS_BUS_TYPES bus_type) {
+static bool jd9365_setup(u2hts_bus_config buscfg) {
+  jd9365_i2c_addr = buscfg.i2c_addr;
   u2hts_tprst_set(false);
   u2hts_delay_ms(50);
   u2hts_tprst_set(true);
   u2hts_delay_ms(100);
-  U2HTS_DETECT_TOUCH_CONTROLLER(jd9365);
+  U2HTS_I2C_DETECT_TOUCH_CONTROLLER(jd9365, jd9365_i2c_addr);
   jd9365_enter_backdoor();
 
   jd9365_backdoor_read(JD9365_COORD_ADDR_REG, &jd9365_coord_reg,
@@ -123,7 +126,7 @@ static bool jd9365_coord_fetch() {
   return true;
 }
 
-static void jd9365_get_config(u2hts_touch_controller_config* cfg) {
+static void jd9365_get_config(u2hts_touch_controller_coord_config* cfg) {
   uint32_t cfg_addr = 0;
   struct {
     uint16_t x_max;

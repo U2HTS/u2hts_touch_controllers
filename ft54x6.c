@@ -6,15 +6,15 @@
 */
 
 #include "u2hts_core.h"
-static bool ft54x6_setup(U2HTS_BUS_TYPES bus_type);
+static bool ft54x6_setup(u2hts_bus_config buscfg);
 static bool ft54x6_coord_fetch();
 
-static u2hts_touch_controller_operations ft54x6_ops = {
+const static u2hts_touch_controller_operations ft54x6_ops = {
     .setup = &ft54x6_setup, .fetch = &ft54x6_coord_fetch};
 
-static u2hts_touch_controller ft54x6 = {
+const static u2hts_touch_controller ft54x6 = {
     .name = "ft54x6",
-    .irq_type = IRQ_TYPE_EDGE_FALLING,
+    .int_flag = INT_FLAG_EDGE_FALLING,
     .report_mode = UTC_REPORT_MODE_CONTINOUS,
     .i2c_config =
         {
@@ -25,7 +25,9 @@ static u2hts_touch_controller ft54x6 = {
 
 U2HTS_TOUCH_CONTROLLER(ft54x6);
 
-#define FT54X6_I2C_ADDR ft54x6.i2c_config.primary_addr
+static uint8_t ft54x6_i2c_addr = 0x0;
+
+#define FT54X6_I2C_ADDR ft54x6_i2c_addr
 
 typedef struct {
   uint8_t x_h;
@@ -61,13 +63,13 @@ inline static uint8_t ft54x6_read_byte(uint8_t reg) {
   return var;
 }
 
-static bool ft54x6_setup(U2HTS_BUS_TYPES bus_type) {
-  U2HTS_UNUSED(bus_type);
+static bool ft54x6_setup(u2hts_bus_config buscfg) {
+  ft54x6_i2c_addr = buscfg.i2c_addr;
   u2hts_tprst_set(false);
   u2hts_delay_ms(100);
   u2hts_tprst_set(true);
   u2hts_delay_ms(200);
-  U2HTS_DETECT_TOUCH_CONTROLLER(ft54x6);
+  U2HTS_I2C_DETECT_TOUCH_CONTROLLER(ft54x6, ft54x6_i2c_addr);
   ft54x6_product_info info = {0};
   ft54x6_i2c_read(FT54X6_PRODUCT_INFO_START_REG, &info, sizeof(info));
   U2HTS_LOG_INFO(

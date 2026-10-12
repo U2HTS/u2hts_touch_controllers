@@ -8,19 +8,19 @@
 #include "u2hts_core.h"
 #include <string.h>
 
-static bool mxt1188s1_setup(U2HTS_BUS_TYPES bus_type);
+static bool mxt1188s1_setup(u2hts_bus_config buscfg);
 static bool mxt1188s1_service(void);
-static void mxt1188s1_get_config(u2hts_touch_controller_config* cfg);
+static void mxt1188s1_get_config(u2hts_touch_controller_coord_config* cfg);
 
-static u2hts_touch_controller_operations mxt1188s1_ops = {
+const static u2hts_touch_controller_operations mxt1188s1_ops = {
     .setup = &mxt1188s1_setup,
     .fetch = &mxt1188s1_service,
     .get_config = &mxt1188s1_get_config
 };
 
-static u2hts_touch_controller mxt1188s1 = {
+const static u2hts_touch_controller mxt1188s1 = {
     .name = "mxt1188s1",
-    .irq_type = IRQ_TYPE_LEVEL_LOW,
+    .int_flag = INT_FLAG_LEVEL_LOW,
     .report_mode = UTC_REPORT_MODE_EVENT,
     .i2c_config =
         {
@@ -33,7 +33,9 @@ static u2hts_touch_controller mxt1188s1 = {
 
 U2HTS_TOUCH_CONTROLLER(mxt1188s1);
 
-#define MXT1188S1_I2C_ADDR mxt1188s1.i2c_config.primary_addr
+static uint8_t mxt1188s1_i2c_addr = 0x0;
+
+#define MXT1188S1_I2C_ADDR mxt1188s1_i2c_addr
 #define MXT1188S1_FAMILY_ID 0xA2
 #define MXT1188S1_VARIANT_ID 0x01
 
@@ -226,8 +228,8 @@ typedef struct {
 
 static mxt1188s1_driver_info_t mxt1188s1_driver;
 
-static bool mxt1188s1_setup(U2HTS_BUS_TYPES bus_type) {
-  U2HTS_UNUSED(bus_type);
+static bool mxt1188s1_setup(u2hts_bus_config buscfg) {
+  mxt1188s1_i2c_addr = buscfg.i2c_addr;
   memset(&mxt1188s1_driver, 0, sizeof(mxt1188s1_driver));
 
   U2HTS_LOG_INFO("mXT1188S - Configuration for I2C (addr=0x%x, speed=%dkHz)", 
@@ -418,7 +420,7 @@ static bool mxt1188s1_setup(U2HTS_BUS_TYPES bus_type) {
   return true;
 }
 
-static void mxt1188s1_get_config(u2hts_touch_controller_config* cfg) {
+static void mxt1188s1_get_config(u2hts_touch_controller_coord_config* cfg) {
   cfg->max_tps = mxt1188s1_driver.nr_touches;
   cfg->x_max = mxt1188s1_driver.x_max;
   cfg->y_max = mxt1188s1_driver.y_max;
