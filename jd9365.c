@@ -13,11 +13,13 @@
 
   The panel I used for testing is very unstable :(
   Slot 1 and Slot 4/5 swap their coordinates randomly.
-  Could be bad calibration in factory.
+  Could be a bad factory calibration.
 */
 
 
 #include "u2hts_core.h"
+
+#define LOG_TAG jd9365.name
 
 static bool jd9365_setup(u2hts_bus_config buscfg);
 static bool jd9365_coord_fetch();
@@ -104,7 +106,7 @@ static bool jd9365_setup(u2hts_bus_config buscfg) {
 
   jd9365_backdoor_read(JD9365_COORD_ADDR_REG, &jd9365_coord_reg,
                        sizeof(jd9365_coord_reg));
-  U2HTS_LOG_INFO("JD9365 id = %x, coord reg = %x", jd9365_read_id(),
+  ULOGI(LOG_TAG, "JD9365 id = %x, coord reg = %x", jd9365_read_id(),
                  jd9365_coord_reg);
 
   return true;

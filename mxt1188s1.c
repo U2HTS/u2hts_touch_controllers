@@ -8,6 +8,8 @@
 #include "u2hts_core.h"
 #include <string.h>
 
+#define LOG_TAG mxt1188s1.name
+
 static bool mxt1188s1_setup(u2hts_bus_config buscfg);
 static bool mxt1188s1_service(void);
 static void mxt1188s1_get_config(u2hts_touch_controller_coord_config* cfg);
@@ -59,19 +61,19 @@ inline static bool mxt1188s1_read(uint16_t addr, void* buf, size_t len) {
   uint8_t addr_buf[2] = { (uint8_t)(addr & 0xFF), (uint8_t)((addr >> 8) & 0xFF) };
 
   if (!buf || len == 0) {
-    U2HTS_LOG_ERROR("%s invalid parameters, buf = %p, len = %zu", __func__, buf, len);
+    ULOGE(LOG_TAG, "%s invalid parameters, buf = %p, len = %zu", __func__, buf, len);
     return false;
   }
 
   // Send 16-bit address with re-start (stop = false)
   if (!u2hts_i2c_write(MXT1188S1_I2C_ADDR, addr_buf, sizeof(addr_buf), false)) {
-    U2HTS_LOG_ERROR("%s write address error, addr = 0x%04x", __func__, addr);
+    ULOGE(LOG_TAG, "%s write address error, addr = 0x%04x", __func__, addr);
     return false;
   }
 
   // Read data following restart
   if (!u2hts_i2c_read(MXT1188S1_I2C_ADDR, buf, len)) {
-    U2HTS_LOG_ERROR("%s read error, addr = 0x%04x", __func__, addr);
+    ULOGE(LOG_TAG, "%s read error, addr = 0x%04x", __func__, addr);
     return false;
   }
 
@@ -84,14 +86,14 @@ inline static bool mxt1188s1_write(uint16_t addr, const void* buf, size_t len) {
   tx_buf[1] = (uint8_t)((addr >> 8) & 0xFF);
 
   if (!buf || len == 0) {
-    U2HTS_LOG_ERROR("%s invalid parameters, buf = %p, len = %zu", __func__, buf, len);
+    ULOGE(LOG_TAG, "%s invalid parameters, buf = %p, len = %zu", __func__, buf, len);
     return false;
   }
 
   memcpy(tx_buf + 2, buf, len);
 
   if (!u2hts_i2c_write(MXT1188S1_I2C_ADDR, tx_buf, 2 + len, true)) {
-    U2HTS_LOG_ERROR("%s write error, addr = 0x%04x", __func__, addr);
+    ULOGE(LOG_TAG, "%s write error, addr = 0x%04x", __func__, addr);
     return false;
   }
 
@@ -232,7 +234,7 @@ static bool mxt1188s1_setup(u2hts_bus_config buscfg) {
   mxt1188s1_i2c_addr = buscfg.i2c_addr;
   memset(&mxt1188s1_driver, 0, sizeof(mxt1188s1_driver));
 
-  U2HTS_LOG_INFO("mXT1188S - Configuration for I2C (addr=0x%x, speed=%dkHz)", 
+  ULOGI(LOG_TAG, "mXT1188S - Configuration for I2C (addr=0x%x, speed=%dkHz)", 
     MXT1188S1_I2C_ADDR, mxt1188s1.i2c_config.speed_hz / 1000);
 
   // Switch INT pin to input with pull-up so CHG (open-drain) can operate
@@ -245,28 +247,28 @@ static bool mxt1188s1_setup(u2hts_bus_config buscfg) {
   u2hts_tprst_set(true);
 
   u2hts_delay_ms(300);
-  U2HTS_LOG_INFO("mXT1188S - Chip has been reset using RST line.");
+  ULOGI(LOG_TAG, "mXT1188S - Chip has been reset using RST line.");
 
   // Read Information block header from address 0x0000
   mxt1188s1_information_block_t info_block;
   if (!mxt1188s1_read(0, &info_block, sizeof(info_block))) {
-    U2HTS_LOG_ERROR("%s failed to read information block header", __func__);
+    ULOGE(LOG_TAG, "%s failed to read information block header", __func__);
     return false;
   }
 
   uint8_t ver_major = (info_block.version >> 4) & 0x0F;
   uint8_t ver_minor = info_block.version & 0x0F;
 
-  U2HTS_LOG_INFO("mXT1188S - Detected Family=0x%02X, Variant=0x%02X, Firmware Ver=%d.%d, Build=%d, Matrix X=%d, Y=%d, Objects=%d",
+  ULOGI(LOG_TAG, "mXT1188S - Detected Family=0x%02X, Variant=0x%02X, Firmware Ver=%d.%d, Build=%d, Matrix X=%d, Y=%d, Objects=%d",
                  info_block.family_id, info_block.variant_id, ver_major, ver_minor,
                  info_block.build, info_block.matrix_x_size, info_block.matrix_y_size, info_block.num_objects);
 
   if (info_block.family_id != MXT1188S1_FAMILY_ID) {
-    U2HTS_LOG_WARN("Unexpected Family ID 0x%02X (expected 0x%02X for mXT1188S)", info_block.family_id, MXT1188S1_FAMILY_ID);
+    ULOGW(LOG_TAG, "Unexpected Family ID 0x%02X (expected 0x%02X for mXT1188S)", info_block.family_id, MXT1188S1_FAMILY_ID);
   }
 
   if (info_block.variant_id != MXT1188S1_VARIANT_ID) {
-    U2HTS_LOG_WARN("Unexpected Variant ID 0x%02X (expected 0x%02X for mXT1188S)", info_block.variant_id, MXT1188S1_VARIANT_ID);
+    ULOGW(LOG_TAG, "Unexpected Variant ID 0x%02X (expected 0x%02X for mXT1188S)", info_block.variant_id, MXT1188S1_VARIANT_ID);
   }
 
   // Read object table to locate T7, T44, T9, T5 objects.
@@ -275,14 +277,14 @@ static bool mxt1188s1_setup(u2hts_bus_config buscfg) {
   for (uint8_t i = 0; i < info_block.num_objects; i++) {
     uint16_t addr = (uint16_t)(sizeof(mxt1188s1_information_block_t) + i * sizeof(mxt1188s1_object_table_element_t));
     if (!mxt1188s1_read(addr, &element, sizeof(element))) {
-      U2HTS_LOG_ERROR("%s read error, addr = 0x%04x", __func__, addr);
+      ULOGE(LOG_TAG, "%s read error, addr = 0x%04x", __func__, addr);
       return false;
     }
 
     if (element.type == 7) {
       mxt1188s1_driver.t7_address = element.start_address;
       mxt1188s1_driver.t7_size = element.size + 1;
-      U2HTS_LOG_INFO("mXT1188S - Found T7 (Power Config) object at 0x%04x, size = %d",
+      ULOGI(LOG_TAG, "mXT1188S - Found T7 (Power Config) object at 0x%04x, size = %d",
                      mxt1188s1_driver.t7_address, mxt1188s1_driver.t7_size);
     } else if (element.type == 9) {
       mxt1188s1_driver.t9_report_id_start = report_id_start;
@@ -290,24 +292,24 @@ static bool mxt1188s1_setup(u2hts_bus_config buscfg) {
       mxt1188s1_driver.t9_address = element.start_address;
       mxt1188s1_driver.t9_size = element.size + 1;
       mxt1188s1_driver.t9_instances = element.instances + 1;
-      U2HTS_LOG_INFO("mXT1188S - Found T9 object at 0x%04x, size = %d, instances = %d, report_ids = %d..%d",
+      ULOGI(LOG_TAG, "mXT1188S - Found T9 object at 0x%04x, size = %d, instances = %d, report_ids = %d..%d",
                      mxt1188s1_driver.t9_address, mxt1188s1_driver.t9_size, mxt1188s1_driver.t9_instances,
                      mxt1188s1_driver.t9_report_id_start, mxt1188s1_driver.t9_report_id_end);
     } else if (element.type == 44) {
       mxt1188s1_driver.t44_address = element.start_address;
       mxt1188s1_driver.t44_size = element.size + 1;
-      U2HTS_LOG_INFO("mXT1188S - Found T44 (Message Count) object at 0x%04x, size = %d",
+      ULOGI(LOG_TAG, "mXT1188S - Found T44 (Message Count) object at 0x%04x, size = %d",
                      mxt1188s1_driver.t44_address, mxt1188s1_driver.t44_size);
     } else if (element.type == 5) {
       mxt1188s1_driver.t5_address = element.start_address;
       mxt1188s1_driver.t5_size = element.size + 1;
-      U2HTS_LOG_INFO("mXT1188S - Found T5 (Message Processor) object at 0x%04x, size = %d",
+      ULOGI(LOG_TAG, "mXT1188S - Found T5 (Message Processor) object at 0x%04x, size = %d",
                      mxt1188s1_driver.t5_address, mxt1188s1_driver.t5_size);
     } else if (element.type == 6) {
       mxt1188s1_driver.t6_address = element.start_address;
       mxt1188s1_driver.t6_size = element.size + 1;
       mxt1188s1_driver.t6_report_id = report_id_start;
-      U2HTS_LOG_INFO("mXT1188S - Found T6 (Command Processor) object at 0x%04x, size = %d, report_id = %d",
+      ULOGI(LOG_TAG, "mXT1188S - Found T6 (Command Processor) object at 0x%04x, size = %d, report_id = %d",
                      mxt1188s1_driver.t6_address, mxt1188s1_driver.t6_size, mxt1188s1_driver.t6_report_id);
     }
 
@@ -316,49 +318,49 @@ static bool mxt1188s1_setup(u2hts_bus_config buscfg) {
 
   // ... T9 object is required because it generates touch reports ...
   if (mxt1188s1_driver.t9_address == 0) {
-    U2HTS_LOG_ERROR("%s T9 object not found", __func__);
+    ULOGE(LOG_TAG, "%s T9 object not found", __func__);
     return false;
   }
 
   // ... T44 object is used to get report count in the fifo ...
   if (mxt1188s1_driver.t44_address == 0) {
-    U2HTS_LOG_ERROR("%s T44 object not found", __func__);
+    ULOGE(LOG_TAG, "%s T44 object not found", __func__);
     return false;
   }
 
   // ... T5 object is used to retrieve reports from other objects ...
   if (mxt1188s1_driver.t5_address == 0) {
-    U2HTS_LOG_ERROR("%s T5 object not found", __func__);
+    ULOGE(LOG_TAG, "%s T5 object not found", __func__);
     return false;
   }
 
   // ... T44 object size should be 1 (report count) ...
   if (mxt1188s1_driver.t44_size != 1) {
-    U2HTS_LOG_ERROR("%s T44 object size is not 1", __func__);
+    ULOGE(LOG_TAG, "%s T44 object size is not 1", __func__);
     return false;
   }
 
   // ... T9 object should be at least size of config ...
   if (mxt1188s1_driver.t9_size < sizeof(mxt1188s1_t9_config_t)) {
-    U2HTS_LOG_ERROR("%s T9 object size is too small", __func__);
+    ULOGE(LOG_TAG, "%s T9 object size is too small", __func__);
     return false;
   }
 
   // ... read T9 object ...
   mxt1188s1_t9_config_t t9_config;
   if (!mxt1188s1_read(mxt1188s1_driver.t9_address, &t9_config, sizeof(t9_config))) {
-    U2HTS_LOG_ERROR("%s failed to read T9 object", __func__);
+    ULOGE(LOG_TAG, "%s failed to read T9 object", __func__);
     return false;
   }
   mxt1188s1_driver.x_max = t9_config.xrangelsb | ((uint16_t)t9_config.xrangemsb << 8);
   mxt1188s1_driver.y_max = t9_config.yrangelsb | ((uint16_t)t9_config.yrangemsb << 8);
   mxt1188s1_driver.nr_touches = t9_config.numtouch;
-  U2HTS_LOG_INFO("mXT1188S - T9 config: Max X: %d, Max Y: %d, Max touches: %d", 
+  ULOGI(LOG_TAG, "mXT1188S - T9 config: Max X: %d, Max Y: %d, Max touches: %d", 
                   mxt1188s1_driver.x_max, mxt1188s1_driver.y_max, mxt1188s1_driver.nr_touches);
 
   // ... confirm the number of touches that will be reported is within the limits of the driver ...
   if (mxt1188s1_driver.nr_touches > U2HTS_MAX_TPS) {
-    U2HTS_LOG_ERROR("mXT1188S - Number of touches %d is greater than U2HTS_MAX_TPS %d", 
+    ULOGE(LOG_TAG, "mXT1188S - Number of touches %d is greater than U2HTS_MAX_TPS %d", 
                     mxt1188s1_driver.nr_touches, U2HTS_MAX_TPS);
     return false;
   }
@@ -372,9 +374,9 @@ static bool mxt1188s1_setup(u2hts_bus_config buscfg) {
       .cfg         = 0x03  // ACTVPIPEEN (bit 1) | IDLEPIPEEN (bit 0)
     };
     if (!mxt1188s1_write(mxt1188s1_driver.t7_address, &power_cfg, sizeof(power_cfg))) {
-      U2HTS_LOG_WARN("mXT1188S - Failed to write T7 power config");
+      ULOGW(LOG_TAG, "mXT1188S - Failed to write T7 power config");
     } else {
-      U2HTS_LOG_INFO("mXT1188S - Configured T7 scan rate: 100Hz (10ms active, 20ms idle)");
+      ULOGI(LOG_TAG, "mXT1188S - Configured T7 scan rate: 100Hz (10ms active, 20ms idle)");
     }
   }
 
@@ -382,7 +384,7 @@ static bool mxt1188s1_setup(u2hts_bus_config buscfg) {
   while (true) {
     uint8_t buf[mxt1188s1_driver.t5_size];
     if (!mxt1188s1_read(mxt1188s1_driver.t5_address, buf, sizeof(buf))) {
-      U2HTS_LOG_ERROR("%s failed to read message", __func__);
+      ULOGE(LOG_TAG, "%s failed to read message", __func__);
       return false;
     }
 
@@ -392,19 +394,19 @@ static bool mxt1188s1_setup(u2hts_bus_config buscfg) {
       mxt1188s1_report_t6_t *report = (mxt1188s1_report_t6_t *)(buf + 1);
       uint8_t status = report->status;
       if (status & (MXT1188S1_T6_STATUS_COMSERR | MXT1188S1_T6_STATUS_CFGERR | MXT1188S1_T6_STATUS_SIGERR)) {
-        U2HTS_LOG_ERROR("mXT1188S - Chip Status After Reset Indicates Error: 0x%02x", status);
+        ULOGE(LOG_TAG, "mXT1188S - Chip Status After Reset Indicates Error: 0x%02x", status);
         if (status & MXT1188S1_T6_STATUS_COMSERR) {
-          U2HTS_LOG_ERROR("      -> Communication error detected");
+          ULOGE(LOG_TAG, "      -> Communication error detected");
         }
         if (status & MXT1188S1_T6_STATUS_CFGERR) {
-          U2HTS_LOG_ERROR("      -> Configuration error detected");
+          ULOGE(LOG_TAG, "      -> Configuration error detected");
         }
         if (status & MXT1188S1_T6_STATUS_SIGERR) {
-          U2HTS_LOG_ERROR("      -> Signal error detected");
+          ULOGE(LOG_TAG, "      -> Signal error detected");
         }
         return false;
       }
-      U2HTS_LOG_INFO("mXT1188S - Chip Status After Reset: 0x%02x (%s)", 
+      ULOGI(LOG_TAG, "mXT1188S - Chip Status After Reset: 0x%02x (%s)", 
                       status, (status == 0x80) ? "RESET" : "OKAY");
     }
     else if (report_id == 0xFF) {
@@ -412,11 +414,11 @@ static bool mxt1188s1_setup(u2hts_bus_config buscfg) {
       break;
     }
     else {
-      U2HTS_LOG_WARN("Unexpected report id: %d", report_id);
+      ULOGW(LOG_TAG, "Unexpected report id: %d", report_id);
     }    
   }
 
-  U2HTS_LOG_INFO("mXT1188S - Finished configuration.");
+  ULOGI(LOG_TAG, "mXT1188S - Finished configuration.");
   return true;
 }
 
@@ -439,7 +441,7 @@ static bool mxt1188s1_service(void) {
     // ... read message from T5 (message queue) ...
     uint8_t buf[mxt1188s1_driver.t5_size];
     if (!mxt1188s1_read(mxt1188s1_driver.t5_address, buf, sizeof(buf))) {
-      U2HTS_LOG_ERROR("%s failed to read message", __func__);
+      ULOGE(LOG_TAG, "%s failed to read message", __func__);
       return false;
     }
 
@@ -457,7 +459,7 @@ static bool mxt1188s1_service(void) {
       // ... get the touch id and confirm it is valid ...
       uint8_t touch_id = report_id - mxt1188s1_driver.t9_report_id_start;
       if (touch_id >= mxt1188s1_driver.nr_touches) {
-        U2HTS_LOG_WARN("Invalid touch id: %d", touch_id);
+        ULOGW(LOG_TAG, "Invalid touch id: %d", touch_id);
         continue;
       }
       
@@ -493,7 +495,7 @@ static bool mxt1188s1_service(void) {
       u2hts_set_tp(slot, fDetect, touch_id, x, y, width, height, report->tchamplitude);      
     }
     else {
-      U2HTS_LOG_WARN("Unexpected report id 0x%02X", report_id);
+      ULOGW(LOG_TAG, "Unexpected report id 0x%02X", report_id);
     }
 
   }

@@ -5,6 +5,8 @@
 */
 
 #include "rmi_common.h"
+
+#define LOG_TAG "rmi_common"
 static uint8_t rmi_current_page = 0x00;
 static rmi_pdt f01 = {0};
 void rmi_i2c_read(uint8_t slave_addr, uint16_t reg, void *data,
@@ -87,9 +89,9 @@ void rmi_f01_setup(uint8_t slave_addr) {
   info.product_id[10] = '\0';
 
   if (!U2HTS_CHECK_BIT(info.vendor_id, 0))
-    U2HTS_LOG_WARN("Not a Synaptics device, ID = 0x%x", info.vendor_id);
+    ULOGW(LOG_TAG, "Not a Synaptics device, ID = 0x%x", info.vendor_id);
   if (U2HTS_CHECK_BIT(info.device_prop, 1))
-    U2HTS_LOG_WARN("This device does not compliant with RMI.");
+    ULOGW(LOG_TAG, "This device does not compliant with RMI.");
   rmi_print_product_info(&info);
 }
 

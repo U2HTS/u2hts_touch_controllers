@@ -8,6 +8,8 @@
 */
 
 #include "u2hts_core.h"
+
+#define LOG_TAG goodix_normandy.name
 static bool goodix_normandy_setup(u2hts_bus_config buscfg);
 static bool goodix_normandy_coord_fetch();
 
@@ -82,7 +84,7 @@ static bool goodix_normandy_setup(u2hts_bus_config buscfg) {
   goodix_normandy_firmware_version fwver = {0};
   goodix_normandy_read_reg(GOODIX_NORMANDY_VERSION_ADDR_NORMANDY, &fwver,
                            sizeof(fwver));
-  U2HTS_LOG_INFO("goodix_normandy product id = %s, fwver = %d",
+  ULOGI(LOG_TAG, "goodix_normandy product id = %s, fwver = %d",
                  fwver.product_id, fwver.fw_version);
   goodix_normandy_clear_irq();
   return true;
@@ -93,7 +95,7 @@ static bool goodix_normandy_coord_fetch() {
               sizeof(goodix_normandy_touch_data) * 10 + 2 /*crc*/];
   goodix_normandy_read_reg(GOODIX_NORMANDY_TOUCH_DATA_ADDR, buf, sizeof(buf));
   goodix_normandy_touch_header* hdr = (goodix_normandy_touch_header*)buf;
-  U2HTS_LOG_DEBUG("status = %d, tp_count = %d", hdr->status, hdr->tp_count);
+  ULOGD(LOG_TAG, "status = %d, tp_count = %d", hdr->status, hdr->tp_count);
   goodix_normandy_clear_irq();
   if (hdr->status == 0 || hdr->tp_count == 0 || hdr->tp_count == 0x80)
     return false;

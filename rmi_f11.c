@@ -8,6 +8,8 @@
 */
 
 #include "rmi_common.h"
+
+#define LOG_TAG rmi_f11.name
 static bool rmi_f11_setup(u2hts_bus_config buscfg);
 static bool rmi_f11_coord_fetch();
 static void rmi_f11_get_config(u2hts_touch_controller_coord_config* cfg);
@@ -119,7 +121,7 @@ static bool rmi_f11_setup(u2hts_bus_config buscfg) {
 
   int8_t f11_index = rmi_fetch_pdt(RMI_F11_I2C_ADDR, RMI_FUNC_F11, &f11);
   if (f11_index < 0) {
-    U2HTS_LOG_ERROR("Failed to fetch F01/F11 PDT from device");
+    ULOGE(LOG_TAG, "Failed to fetch F01/F11 PDT from device");
     return false;
   }
 
@@ -127,19 +129,19 @@ static bool rmi_f11_setup(u2hts_bus_config buscfg) {
 
   uint8_t sensor_count_reg = rmi_f11_query_read(0);
   if ((sensor_count_reg & 0x7) != 0x00)  // lower 3 bits
-    U2HTS_LOG_WARN("F11 2D Sensors > 1 devices are not supported");
+    ULOGW(LOG_TAG, "F11 2D Sensors > 1 devices are not supported");
 
   uint8_t generic_sensor_info = rmi_f11_query_read(1);
   if (U2HTS_CHECK_BIT(generic_sensor_info, 3))
-    U2HTS_LOG_WARN(
+    ULOGW(LOG_TAG, 
         "Device contain relative reporting mode which is not supported");
   if (U2HTS_CHECK_BIT(generic_sensor_info, 4))
-    U2HTS_LOG_INFO("Device support absolule reporting mode");
+    ULOGI(LOG_TAG, "Device support absolule reporting mode");
 
   // we need to put ReportingMode to '000', aka "Continous reporting mode".
   uint8_t general_control = rmi_f11_ctrl_read(0);
   if (general_control & 0x7) {
-    U2HTS_LOG_WARN("Reporting mode is 0x%x which is not 0, changing mode.",
+    ULOGW(LOG_TAG, "Reporting mode is 0x%x which is not 0, changing mode.",
                    general_control);
     U2HTS_SET_BIT(general_control, 0, 0);
     U2HTS_SET_BIT(general_control, 1, 0);

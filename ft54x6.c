@@ -6,6 +6,8 @@
 */
 
 #include "u2hts_core.h"
+
+#define LOG_TAG ft54x6.name
 static bool ft54x6_setup(u2hts_bus_config buscfg);
 static bool ft54x6_coord_fetch();
 
@@ -72,7 +74,7 @@ static bool ft54x6_setup(u2hts_bus_config buscfg) {
   U2HTS_I2C_DETECT_TOUCH_CONTROLLER(ft54x6, ft54x6_i2c_addr);
   ft54x6_product_info info = {0};
   ft54x6_i2c_read(FT54X6_PRODUCT_INFO_START_REG, &info, sizeof(info));
-  U2HTS_LOG_INFO(
+  ULOGI(LOG_TAG, 
       "fwver_h = 0x%x, fwver_l = 0x%x, vendor_id = 0x%x, fw_id = 0x%x",
       info.fwver_h, info.fwver_l, info.vendor_id, info.fw_id);
   return true;

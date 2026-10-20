@@ -51,6 +51,8 @@ U2HTS_TOUCH_CONTROLLER(mycontroller);
 static uint8_t mycontroller_i2c_addr = 0x0;
 
 #define MYCONTROLLER_I2C_ADDR mycontroller_i2c_addr
+
+#define LOG_TAG mycontroller.name
 // Touch point count register
 // 读取触摸点数量的寄存器
 #define MYCONTROLLER_TP_COUNT_REG 0x0001
@@ -130,6 +132,7 @@ inline static void mycontroller_write_byte(uint16_t reg, uint8_t data) {
 }
 
 static bool mycontroller_setup(u2hts_bus_config buscfg) {
+  ULOGI(LOG_TAG, "Hello from mycontroller!");
   // user may override i2c address - save it here
   // 用户可能会覆盖 I2C 地址，于此保存
   mycontroller_i2c_addr = buscfg.i2c_addr;

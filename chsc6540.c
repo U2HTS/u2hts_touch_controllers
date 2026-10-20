@@ -14,6 +14,8 @@
 
 #include "u2hts_core.h"
 
+#define LOG_TAG chsc6540.name
+
 #define CHSC6540_I2C_ADDR chsc6540_i2c_addr
 
 static bool chsc6540_setup(u2hts_bus_config buscfg);
@@ -77,7 +79,7 @@ static bool chsc6540_setup(u2hts_bus_config buscfg) {
 static bool chsc6540_coord_fetch() {
   chsc6540_registers regs = {0};
   chsc6540_read_reg(0x02, &regs, sizeof(regs));
-  U2HTS_LOG_DEBUG("chsc6540 tp_count = %d", regs.fingers);
+  ULOGD(LOG_TAG, "chsc6540 tp_count = %d", regs.fingers);
 
   if (regs.reg7_0x0d != 0x0d) regs = previous_regs;
   U2HTS_SET_TP_COUNT_SAFE(regs.fingers);

@@ -7,6 +7,8 @@
 
 #include "u2hts_core.h"
 
+#define LOG_TAG gt9xx.name
+
 static bool gt9xx_setup(u2hts_bus_config buscfg);
 static bool gt9xx_coord_fetch();
 static void gt9xx_get_config(u2hts_touch_controller_coord_config* cfg);
@@ -131,7 +133,7 @@ static bool gt9xx_setup(u2hts_bus_config buscfg) {
 
   gt9xx_i2c_read(GT9XX_PRODUCT_INFO_START_REG, gt9xx_product_id,
                  sizeof(gt9xx_product_id));
-  U2HTS_LOG_INFO("gt9xx i2c addr: 0x%x, product ID: %s", gt9xx_i2c_addr,
+  ULOGI(LOG_TAG, "gt9xx i2c addr: 0x%x, product ID: %s", gt9xx_i2c_addr,
                  gt9xx_product_id);
 
   u2hts_delay_ms(100);

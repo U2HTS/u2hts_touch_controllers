@@ -6,6 +6,8 @@
 */
 
 #include "u2hts_core.h"
+
+#define LOG_TAG cst8xx.name
 static bool cst8xx_setup(u2hts_bus_config buscfg);
 static bool cst8xx_coord_fetch();
 
@@ -66,7 +68,7 @@ static bool cst8xx_setup(u2hts_bus_config buscfg) {
   U2HTS_I2C_DETECT_TOUCH_CONTROLLER(cst8xx, cst8xx_i2c_addr);
   cst8xx_product_info info = {0};
   cst8xx_i2c_read(CST8XX_PRODUCT_INFO_START_REG, &info, sizeof(info));
-  U2HTS_LOG_INFO(
+  ULOGI(LOG_TAG, 
       "chip_id = 0x%x, ProjID = 0x%x, fw_ver = 0x%x, vendor_id = 0x%x",
       info.chip_id, info.proj_id, info.fw_ver, info.vendor_id);
   return true;
