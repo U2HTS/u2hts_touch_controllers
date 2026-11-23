@@ -1,7 +1,7 @@
 /*
   Copyright (C) U2HTS Developers. All rights reserved.
   U2HTS stands for "USB to HID TouchScreen".
-  linux-multitouch.c: bridge a Linux evdev multitouch input device into U2HTS.
+  linux-multitouch.c: Linux mt device driver.
   This file is licensed under GPL V3.
   **THIS DRIVER IS AI-GENERATED**
 */
@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/input.h>
+#include <poll.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -26,6 +27,12 @@ typedef struct {
   int32_t y;
 } mt_slot;
 
+typedef struct {
+  uint8_t id;
+  uint16_t x;
+  uint16_t y;
+} mt_contact;
+
 static int mt_fd = -1;
 static int mt_x_max = U2HTS_LOGICAL_MAX;
 static int mt_y_max = U2HTS_LOGICAL_MAX;
@@ -33,6 +40,11 @@ static uint8_t mt_max_tps = U2HTS_MAX_TPS;
 
 static mt_slot mt_slots[U2HTS_MAX_TPS];
 static uint8_t mt_current_slot = 0;
+
+// Contacts reported in the previous frame, used to emit an explicit release
+// frame (contact = false) when all fingers are lifted.
+static mt_contact mt_prev[U2HTS_MAX_TPS];
+static uint8_t mt_prev_count = 0;
 
 static bool mt_setup(u2hts_bus_config buscfg);
 static bool mt_fetch();
@@ -47,7 +59,7 @@ const static u2hts_touch_controller_operations mt_ops = {
 const static u2hts_touch_controller mt = {
     .name = "linux-multitouch",
     .int_flag = 0xFF,
-    .report_mode = UTC_REPORT_MODE_CONTINOUS,
+    .report_mode = UTC_REPORT_MODE_EVENT,
     // bypass u2hts_init bus type detection
     .i2c_config = {.primary_addr = 0xFF, .speed_hz = 100 * 1000},
     .operations = &mt_ops};
@@ -120,6 +132,7 @@ static bool mt_setup(u2hts_bus_config buscfg) {
   mt_max_tps = (uint8_t)max_tps;
 
   for (uint8_t i = 0; i < U2HTS_MAX_TPS; i++) mt_slots[i].tracking_id = -1;
+  mt_prev_count = 0;
 
   ULOGI(LOG_TAG, "using %s, x_max = %d, y_max = %d, max_tps = %d", path,
         mt_x_max, mt_y_max, mt_max_tps);
@@ -138,24 +151,44 @@ static uint16_t mt_clamp_coord(int32_t value, int max) {
   return (uint16_t)value;
 }
 
-static uint8_t mt_submit() {
+static void mt_submit() {
   uint8_t count = 0;
   for (uint8_t i = 0; i < mt_max_tps; i++) {
     if (mt_slots[i].tracking_id < 0) continue;
-    u2hts_set_tp(count++, true, (uint8_t)mt_slots[i].tracking_id,
-                 mt_clamp_coord(mt_slots[i].x, mt_x_max),
-                 mt_clamp_coord(mt_slots[i].y, mt_y_max), 0, 0, 0);
+    uint16_t x = mt_clamp_coord(mt_slots[i].x, mt_x_max);
+    uint16_t y = mt_clamp_coord(mt_slots[i].y, mt_y_max);
+    u2hts_set_tp(count, true, (uint8_t)mt_slots[i].tracking_id, x, y, 0, 0, 0);
+    mt_prev[count].id = (uint8_t)mt_slots[i].tracking_id;
+    mt_prev[count].x = x;
+    mt_prev[count].y = y;
+    count++;
   }
+
+  if (!count && mt_prev_count) {
+    for (uint8_t i = 0; i < mt_prev_count; i++)
+      u2hts_set_tp(i, false, mt_prev[i].id, mt_prev[i].x, mt_prev[i].y, 0, 0,
+                   0);
+    u2hts_set_tp_count(mt_prev_count);
+    mt_prev_count = 0;
+    return;
+  }
+
   u2hts_set_tp_count(count);
-  return count;
+  mt_prev_count = count;
 }
 
 static bool mt_fetch() {
   if (mt_fd < 0) return false;
 
+  struct pollfd pfd = {.fd = mt_fd, .events = POLLIN};
+  if (poll(&pfd, 1, 50) <= 0) return false;
+  if (!(pfd.revents & POLLIN)) return false;
+
+  bool got_event = false;
   struct input_event ev;
   ssize_t n;
   while ((n = read(mt_fd, &ev, sizeof(ev))) == (ssize_t)sizeof(ev)) {
+    got_event = true;
     switch (ev.type) {
       case EV_ABS:
         switch (ev.code) {
@@ -190,5 +223,7 @@ static bool mt_fetch() {
     return false;
   }
 
-  return mt_submit() > 0;
+  if (!got_event) return false;
+  mt_submit();
+  return true;
 }
